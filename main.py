@@ -1,0 +1,60 @@
+import streamlit as st
+from langchain_ollama import OllamaLLM
+from langchain_core.prompts import ChatPromptTemplate
+
+# 모델 및 프롬프트 템플릿 설정
+template = """
+아래 질문에 답변하세요.
+
+대화 기록:{context}
+
+질문:{question}
+
+답변:
+"""
+
+# 모델 및 프롬프트 설정
+model = OllamaLLM(model="bnksys/yanolja-eeve-korean-instruct-10.8b")
+prompt = ChatPromptTemplate.from_template(template)
+chain = prompt | model
+
+# Streamlit 애플리케이션
+def main():
+    st.set_page_config(page_title="학습 보조 AI", layout="wide")
+
+    st.sidebar.header("학습 보조 AI")
+    st.sidebar.write("궁금한 교과 내용을 질문해 보세요.")
+    st.sidebar.subheader("도움말")
+    st.sidebar.write("이 애플리케이션은 교과 내용에 대해 질문하고 답변을 받는 데 도움을 줍니다.")
+    st.sidebar.write("사용 방법: 질문을 입력하고 '전송' 버튼을 클릭하여 답변을 받으세요.")
+    st.sidebar.subheader("자주 묻는 질문")
+    st.sidebar.write("- 질문을 입력하면 AI가 답변을 제공합니다.")
+    st.sidebar.write("- 대화 기록은 현재 세션에서만 유지됩니다.")
+    st.sidebar.write("- 교과 내용과 관련이 없는 질문은 제대로 된 답을 얻기 힘듭니다.")
+
+    st.title("학습 보조 AI")
+    st.markdown("<h2 style='text-align: center;'>교과 내용 질문&응답</h2>", unsafe_allow_html=True)
+    
+    if 'context' not in st.session_state:
+        st.session_state.context = ""
+
+    # 입력 폼 및 버튼 배치
+    col1, col2 = st.columns([4, 1])
+    
+    with col1:
+        user_input = st.text_input("질문을 입력하세요:", placeholder="여기에 질문을 입력하세요...")
+
+    with col2:
+        if st.button("전송"):
+            if user_input:
+                try:
+                    result = chain.invoke({"context": st.session_state.context, "question": user_input})
+                    st.session_state.context += f"\n나: {user_input}\n학습 도우미: {result}"
+                    st.write("AI 답변:", result)
+                except Exception as e:
+                    st.write(f"오류 발생: {e}")
+            else:
+                st.write("질문을 입력해 주세요.")
+
+if __name__ == "__main__":
+    main()
